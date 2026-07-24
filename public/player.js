@@ -15,12 +15,15 @@ const POS_KEY = 'jmmfradio_rotation_pos';
 const LAST_KEY = 'jmmfradio_last_played';
 const VOLUME_KEY = 'jmmfradio_volume';
 const STATE_REFRESH_MS = 30_000;
+const COMMAND_POLL_MS = 2_000;
 const UP_NEXT_PREVIEW_COUNT = 3;
 
 let state = { categories: [], rotation: [], tracks: [] };
 let categoryMap = new Map();
 let tracksByCategory = new Map();
 let currentTrack = null;
+// Set by an admin command; consumed by the next pickNextTrack() call, then cleared.
+let forcedNext = null;
 
 function loadPos() {
   return Number(localStorage.getItem(POS_KEY)) || 0;
@@ -82,7 +85,33 @@ function selectNext(pos, lastPlayed) {
   return { track: null, pos: p, lastPlayed };
 }
 
+// Resolves a forced pick (from an admin command) without touching the rotation position,
+// so the normal clock wheel picks up right where it left off afterward.
+function resolveForcedNext(forced) {
+  if (forced.type === 'track') {
+    return state.tracks.find((t) => t.id === forced.trackId) || null;
+  }
+  const candidates = tracksByCategory.get(forced.categoryId) || [];
+  if (!candidates.length) return null;
+  const lastPlayed = loadLastPlayed();
+  let pool = candidates;
+  if (candidates.length > 1) {
+    const filtered = candidates.filter((t) => t.id !== lastPlayed[forced.categoryId]);
+    if (filtered.length) pool = filtered;
+  }
+  const track = pool[Math.floor(Math.random() * pool.length)];
+  saveLastPlayed({ ...lastPlayed, [forced.categoryId]: track.id });
+  return track;
+}
+
 function pickNextTrack() {
+  if (forcedNext) {
+    const forced = forcedNext;
+    forcedNext = null;
+    const track = resolveForcedNext(forced);
+    if (track) return track;
+    // Requested category/track had nothing playable (e.g. deleted) — fall through to rotation.
+  }
   if (!state.rotation.length || !state.tracks.length) return null;
   const result = selectNext(loadPos(), loadLastPlayed());
   savePos(result.pos);
@@ -225,6 +254,27 @@ muteBtn.addEventListener('click', () => {
   localStorage.setItem(VOLUME_KEY, String(audio.volume));
   updateMuteIcon();
 });
+
+// Lets the admin page skip, or force a specific category/track to play next.
+async function pollCommand() {
+  try {
+    const res = await fetch('/api/command', { cache: 'no-store' });
+    const { command } = await res.json();
+    if (!command) return;
+    if (command.type === 'skip') {
+      playNext();
+    } else if (command.type === 'play-category') {
+      forcedNext = { type: 'category', categoryId: command.categoryId };
+      playNext();
+    } else if (command.type === 'play-track') {
+      forcedNext = { type: 'track', trackId: command.trackId };
+      playNext();
+    }
+  } catch {
+    // best-effort; try again on the next poll
+  }
+}
+setInterval(pollCommand, COMMAND_POLL_MS);
 
 // Periodically pick up newly uploaded tracks / rotation edits without needing to reload the source.
 setInterval(async () => {

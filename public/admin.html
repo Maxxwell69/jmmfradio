@@ -32,6 +32,21 @@
           <ol id="history-list" class="np-list"></ol>
         </div>
       </div>
+
+      <div class="now-playing-controls">
+        <button id="skip-btn" type="button">&#9197; Skip to next track</button>
+
+        <form id="play-category-form" class="inline-form">
+          <select id="play-category-select"></select>
+          <button type="submit">Play next from category</button>
+        </form>
+
+        <form id="play-track-form" class="inline-form">
+          <select id="play-track-select"></select>
+          <button type="submit">Play this track next</button>
+        </form>
+        <span id="command-status" class="status"></span>
+      </div>
     </section>
 
     <section class="panel">

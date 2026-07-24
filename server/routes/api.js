@@ -289,4 +289,30 @@ router.get('/now-playing', (req, res) => {
   res.json(nowPlaying);
 });
 
+// In-memory, single-slot queue: admin posts a command, the player picks it up on its
+// next poll and the GET clears it. Good enough for one player instance at a time.
+let pendingCommand = null;
+const COMMAND_TYPES = new Set(['skip', 'play-category', 'play-track']);
+
+router.post('/command', express.json(), (req, res) => {
+  const { type, categoryId, trackId } = req.body;
+  if (!COMMAND_TYPES.has(type)) {
+    return res.status(400).json({ error: 'Invalid command type.' });
+  }
+  if (type === 'play-category' && !categoryId) {
+    return res.status(400).json({ error: 'categoryId is required.' });
+  }
+  if (type === 'play-track' && !trackId) {
+    return res.status(400).json({ error: 'trackId is required.' });
+  }
+  pendingCommand = { id: crypto.randomUUID(), type, categoryId, trackId };
+  res.json({ ok: true });
+});
+
+router.get('/command', (req, res) => {
+  const command = pendingCommand;
+  pendingCommand = null;
+  res.json({ command });
+});
+
 export default router;

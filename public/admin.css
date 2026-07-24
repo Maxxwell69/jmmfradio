@@ -213,6 +213,23 @@ button:hover {
   margin-top: 4px;
 }
 
+.now-playing-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.now-playing-controls .inline-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

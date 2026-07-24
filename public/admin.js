@@ -63,6 +63,12 @@ function renderCategoryChips() {
 function renderCategorySelects() {
   document.getElementById('category-select').innerHTML = categoryOptionsHtml();
   document.getElementById('rotation-category-select').innerHTML = categoryOptionsHtml();
+  document.getElementById('play-category-select').innerHTML = categoryOptionsHtml();
+
+  const trackSelect = document.getElementById('play-track-select');
+  trackSelect.innerHTML = state.tracks
+    .map((t) => `<option value="${t.id}">${escapeHtml(t.title)}${t.artist ? ` — ${escapeHtml(t.artist)}` : ''}</option>`)
+    .join('');
 }
 
 let dragFromIndex = null;
@@ -269,6 +275,37 @@ document.getElementById('save-rotation').addEventListener('click', async () => {
   } catch (err) {
     statusEl.textContent = err.message;
   }
+});
+
+async function sendCommand(body) {
+  const statusEl = document.getElementById('command-status');
+  try {
+    await api('/command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    statusEl.textContent = 'Sent — the player will pick it up within a couple seconds.';
+    setTimeout(() => (statusEl.textContent = ''), 3000);
+  } catch (err) {
+    statusEl.textContent = err.message;
+  }
+}
+
+document.getElementById('skip-btn').addEventListener('click', () => sendCommand({ type: 'skip' }));
+
+document.getElementById('play-category-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const categoryId = document.getElementById('play-category-select').value;
+  if (!categoryId) return;
+  sendCommand({ type: 'play-category', categoryId });
+});
+
+document.getElementById('play-track-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const trackId = document.getElementById('play-track-select').value;
+  if (!trackId) return;
+  sendCommand({ type: 'play-track', trackId });
 });
 
 refresh().catch((err) => alert(`Failed to load: ${err.message}`));
