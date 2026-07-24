@@ -4,6 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { parseFile } from 'music-metadata';
 import { readDb, updateDb } from '../db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -24,6 +25,34 @@ const AUDIO_TYPES = new Set([
 ]);
 
 const ART_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+
+const PICTURE_EXT = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
+
+// Reads embedded ID3/Vorbis/etc tags so uploads don't require manual title/artist/art entry.
+async function readAudioMetadata(filePath) {
+  try {
+    const metadata = await parseFile(filePath, { skipCovers: false });
+    const picture = metadata.common.picture?.[0];
+    return {
+      title: metadata.common.title?.trim() || null,
+      artist: metadata.common.artist?.trim() || null,
+      picture: picture && PICTURE_EXT[picture.format] ? picture : null,
+    };
+  } catch {
+    return { title: null, artist: null, picture: null };
+  }
+}
+
+async function saveEmbeddedArt(picture) {
+  const filename = `${crypto.randomUUID()}${PICTURE_EXT[picture.format]}`;
+  await fs.writeFile(path.join(ART_DIR, filename), picture.data);
+  return filename;
+}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -101,6 +130,16 @@ router.post(
       return res.status(400).json({ error: 'categoryId is required.' });
     }
 
+    const tags = await readAudioMetadata(file.path);
+    let artFilename = art ? art.filename : null;
+    if (!artFilename && tags.picture) {
+      try {
+        artFilename = await saveEmbeddedArt(tags.picture);
+      } catch {
+        artFilename = null;
+      }
+    }
+
     try {
       const db = await updateDb((db) => {
         if (!db.categories.some((c) => c.id === categoryId)) {
@@ -109,10 +148,10 @@ router.post(
         const track = {
           id: crypto.randomUUID(),
           filename: file.filename,
-          title: title?.trim() || path.parse(file.originalname).name,
-          artist: artist?.trim() || '',
+          title: title?.trim() || tags.title || path.parse(file.originalname).name,
+          artist: artist?.trim() || tags.artist || '',
           categoryId,
-          art: art ? art.filename : null,
+          art: artFilename,
           addedAt: new Date().toISOString(),
         };
         db.tracks.push(track);
@@ -123,6 +162,7 @@ router.post(
     } catch (err) {
       await safeUnlink(file.path);
       await safeUnlink(art?.path);
+      if (artFilename && !art) await safeUnlink(path.join(ART_DIR, artFilename));
       res.status(err.status || 500).json({ error: err.message });
     }
   }
@@ -225,6 +265,28 @@ router.put('/rotation', express.json(), async (req, res) => {
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
+});
+
+// In-memory only: the player page self-reports what it's playing so the admin UI can show
+// an on-air/up-next/history view without the server owning rotation state itself.
+const nowPlaying = { current: null, currentSince: null, upNext: [], history: [] };
+
+router.post('/now-playing', express.json(), (req, res) => {
+  const { current, upNext } = req.body;
+  if (nowPlaying.current && (!current || nowPlaying.current.id !== current.id)) {
+    nowPlaying.history.unshift({ ...nowPlaying.current, playedAt: nowPlaying.currentSince });
+    nowPlaying.history = nowPlaying.history.slice(0, 10);
+  }
+  if (current && nowPlaying.current?.id !== current.id) {
+    nowPlaying.currentSince = new Date().toISOString();
+  }
+  nowPlaying.current = current || null;
+  nowPlaying.upNext = Array.isArray(upNext) ? upNext.slice(0, 10) : [];
+  res.json({ ok: true });
+});
+
+router.get('/now-playing', (req, res) => {
+  res.json(nowPlaying);
 });
 
 export default router;

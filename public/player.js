@@ -8,10 +8,14 @@ const badgeEl = document.getElementById('category-badge');
 const progressFill = document.getElementById('progress-fill');
 const emptyEl = document.getElementById('empty');
 const startBtn = document.getElementById('start-btn');
+const muteBtn = document.getElementById('mute-btn');
+const volumeSlider = document.getElementById('volume-slider');
 
 const POS_KEY = 'jmmfradio_rotation_pos';
 const LAST_KEY = 'jmmfradio_last_played';
+const VOLUME_KEY = 'jmmfradio_volume';
 const STATE_REFRESH_MS = 30_000;
+const UP_NEXT_PREVIEW_COUNT = 3;
 
 let state = { categories: [], rotation: [], tracks: [] };
 let categoryMap = new Map();
@@ -51,17 +55,17 @@ async function fetchState() {
   indexTracks();
 }
 
-function pickNextTrack() {
-  if (!state.rotation.length || !state.tracks.length) return null;
-
-  let pos = loadPos();
-  const lastPlayed = loadLastPlayed();
+// Pure step function: given a rotation position and per-category "last played" map,
+// picks the next track without touching localStorage. Shared by pickNextTrack (which
+// persists the result) and previewUpNext (which just simulates ahead for display).
+function selectNext(pos, lastPlayed) {
   const attempts = Math.max(state.rotation.length, 1);
+  let p = pos;
 
   for (let i = 0; i < attempts; i++) {
-    const categoryId = state.rotation[pos % state.rotation.length];
+    const categoryId = state.rotation[p % state.rotation.length];
     const candidates = tracksByCategory.get(categoryId) || [];
-    pos += 1;
+    p += 1;
 
     if (candidates.length) {
       let pool = candidates;
@@ -71,15 +75,51 @@ function pickNextTrack() {
         if (filtered.length) pool = filtered;
       }
       const track = pool[Math.floor(Math.random() * pool.length)];
-      savePos(pos);
-      lastPlayed[categoryId] = track.id;
-      saveLastPlayed(lastPlayed);
-      return track;
+      return { track, pos: p, lastPlayed: { ...lastPlayed, [categoryId]: track.id } };
     }
   }
 
-  savePos(pos);
-  return null;
+  return { track: null, pos: p, lastPlayed };
+}
+
+function pickNextTrack() {
+  if (!state.rotation.length || !state.tracks.length) return null;
+  const result = selectNext(loadPos(), loadLastPlayed());
+  savePos(result.pos);
+  if (result.track) saveLastPlayed(result.lastPlayed);
+  return result.track;
+}
+
+function previewUpNext(count) {
+  if (!state.rotation.length || !state.tracks.length) return [];
+  let pos = loadPos();
+  let lastPlayed = loadLastPlayed();
+  const preview = [];
+  for (let i = 0; i < count; i++) {
+    const result = selectNext(pos, lastPlayed);
+    if (!result.track) break;
+    preview.push(result.track);
+    pos = result.pos;
+    lastPlayed = result.lastPlayed;
+  }
+  return preview;
+}
+
+function reportNowPlaying(track) {
+  const upNext = previewUpNext(UP_NEXT_PREVIEW_COUNT).map((t) => ({
+    id: t.id,
+    title: t.title,
+    artist: t.artist,
+    categoryId: t.categoryId,
+  }));
+  fetch('/api/now-playing', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      current: { id: track.id, title: track.title, artist: track.artist, categoryId: track.categoryId, art: track.art },
+      upNext,
+    }),
+  }).catch(() => {});
 }
 
 function renderTrack(track) {
@@ -114,6 +154,7 @@ async function playNext() {
   currentTrack = track;
   audio.src = `/media/${track.filename}`;
   renderTrack(track);
+  reportNowPlaying(track);
   try {
     await audio.play();
     startBtn.classList.add('hidden');
@@ -153,6 +194,36 @@ startBtn.addEventListener('click', async () => {
   } catch (err) {
     console.error('Playback still blocked:', err);
   }
+});
+
+function loadVolume() {
+  const raw = localStorage.getItem(VOLUME_KEY);
+  if (raw === null) return 0.8;
+  const v = Number(raw);
+  return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.8;
+}
+
+function updateMuteIcon() {
+  muteBtn.textContent = audio.volume === 0 ? '\u{1F507}' : '\u{1F50A}';
+}
+
+let lastNonZeroVolume = loadVolume() || 0.8;
+audio.volume = loadVolume();
+volumeSlider.value = String(Math.round(audio.volume * 100));
+updateMuteIcon();
+
+volumeSlider.addEventListener('input', () => {
+  audio.volume = Number(volumeSlider.value) / 100;
+  if (audio.volume > 0) lastNonZeroVolume = audio.volume;
+  localStorage.setItem(VOLUME_KEY, String(audio.volume));
+  updateMuteIcon();
+});
+
+muteBtn.addEventListener('click', () => {
+  audio.volume = audio.volume > 0 ? 0 : lastNonZeroVolume || 0.8;
+  volumeSlider.value = String(Math.round(audio.volume * 100));
+  localStorage.setItem(VOLUME_KEY, String(audio.volume));
+  updateMuteIcon();
 });
 
 // Periodically pick up newly uploaded tracks / rotation edits without needing to reload the source.

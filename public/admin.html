@@ -16,16 +16,31 @@
 
   <main>
     <section class="panel">
+      <h2>On Air</h2>
+      <div id="now-playing-current" class="now-playing-current">Waiting for the player page to report status&hellip;</div>
+      <div class="now-playing-columns">
+        <div>
+          <h3>Up next</h3>
+          <ol id="up-next-list" class="np-list"></ol>
+        </div>
+        <div>
+          <h3>Recently played</h3>
+          <ol id="history-list" class="np-list"></ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>1. Upload media</h2>
       <form id="upload-form">
         <label>File
           <input type="file" name="file" id="file-input" required />
         </label>
         <label>Title (optional)
-          <input type="text" name="title" id="title-input" placeholder="Defaults to filename" />
+          <input type="text" name="title" id="title-input" placeholder="Auto-detected from file tags" />
         </label>
         <label>Artist (optional)
-          <input type="text" name="artist" id="artist-input" />
+          <input type="text" name="artist" id="artist-input" placeholder="Auto-detected from file tags" />
         </label>
         <label>Category
           <select name="categoryId" id="category-select" required></select>
@@ -33,6 +48,7 @@
         <label>Art (optional)
           <input type="file" name="art" id="art-input" accept="image/*" />
         </label>
+        <span class="hint full-width">Title, artist, and cover art are read automatically from the file's tags (ID3, etc.) when available &mdash; the fields above only need to be filled in to override that.</span>
         <button type="submit">Upload</button>
         <span id="upload-status" class="status"></span>
       </form>
@@ -50,7 +66,7 @@
 
     <section class="panel">
       <h2>3. Rotation (clock wheel)</h2>
-      <p class="hint">This is the order categories cycle through, e.g. Music, Music, Music, Station ID, repeat.</p>
+      <p class="hint">This is the order categories cycle through, e.g. Music, Music, Music, Station ID, repeat. Drag chips to reorder.</p>
       <div id="rotation-list" class="chip-row rotation"></div>
       <form id="rotation-add-form" class="inline-form">
         <select id="rotation-category-select"></select>

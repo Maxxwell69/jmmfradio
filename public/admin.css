@@ -130,8 +130,71 @@ button:hover {
   font-size: 12px;
 }
 
-.rotation .chip {
-  cursor: default;
+.drag-chip {
+  cursor: grab;
+  user-select: none;
+}
+
+.drag-chip.dragging {
+  opacity: 0.4;
+}
+
+.drag-chip .drag-handle {
+  opacity: 0.55;
+  font-size: 11px;
+  line-height: 1;
+  margin-right: 2px;
+}
+
+.full-width {
+  flex-basis: 100%;
+}
+
+.now-playing-current {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  margin-bottom: 14px;
+}
+
+.now-playing-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.now-playing-columns h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.np-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.np-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.np-list .chip {
+  font-size: 10px;
+  padding: 2px 7px;
+}
+
+.np-empty {
+  opacity: 0.5;
 }
 
 .inline-form {

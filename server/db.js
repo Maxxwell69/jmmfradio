@@ -17,6 +17,7 @@ const DEFAULT_DB = {
   categories: DEFAULT_CATEGORIES,
   rotation: ['music', 'music', 'music', 'id', 'music', 'music', 'music', 'jingle'],
   tracks: [],
+  settings: { crossfadeSeconds: 3 },
 };
 
 let writeQueue = Promise.resolve();
@@ -30,10 +31,17 @@ async function ensureDb() {
   }
 }
 
+// Backfills fields for db.json files written before they existed, so upgrading
+// doesn't require a manual migration step.
+function withDefaults(db) {
+  if (!db.settings) db.settings = { crossfadeSeconds: 3 };
+  return db;
+}
+
 export async function readDb() {
   await ensureDb();
   const raw = await fs.readFile(DB_FILE, 'utf-8');
-  return JSON.parse(raw);
+  return withDefaults(JSON.parse(raw));
 }
 
 // Serializes writes so concurrent requests (e.g. two uploads at once) can't clobber each other.
@@ -52,7 +60,7 @@ export function updateDb(mutator) {
   const result = writeQueue.then(async () => {
     await ensureDb();
     const raw = await fs.readFile(DB_FILE, 'utf-8');
-    const db = JSON.parse(raw);
+    const db = withDefaults(JSON.parse(raw));
     const next = (await mutator(db)) || db;
     const tmpFile = `${DB_FILE}.tmp`;
     await fs.writeFile(tmpFile, JSON.stringify(next, null, 2));

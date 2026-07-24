@@ -65,6 +65,8 @@ function renderCategorySelects() {
   document.getElementById('rotation-category-select').innerHTML = categoryOptionsHtml();
 }
 
+let dragFromIndex = null;
+
 function renderRotation() {
   const el = document.getElementById('rotation-list');
   const categoryMap = new Map(state.categories.map((c) => [c.id, c]));
@@ -74,10 +76,9 @@ function renderRotation() {
       const c = categoryMap.get(id);
       if (!c) return '';
       return `
-      <span class="chip" style="background:${c.color}">
+      <span class="chip drag-chip" style="background:${c.color}" draggable="true" data-index="${i}">
+        <span class="drag-handle">&#8942;&#8942;</span>
         ${i + 1}. ${escapeHtml(c.name)}
-        <button type="button" data-move="${i}:-1" title="Move earlier" ${i === 0 ? 'disabled' : ''}>&uarr;</button>
-        <button type="button" data-move="${i}:1" title="Move later" ${i === localRotation.length - 1 ? 'disabled' : ''}>&darr;</button>
         <button type="button" data-remove-rotation="${i}" title="Remove">&times;</button>
       </span>`;
     })
@@ -89,17 +90,65 @@ function renderRotation() {
       renderRotation();
     });
   });
-  el.querySelectorAll('[data-move]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const [idxStr, dirStr] = btn.dataset.move.split(':');
-      const idx = Number(idxStr);
-      const dir = Number(dirStr);
-      const target = idx + dir;
-      if (target < 0 || target >= localRotation.length) return;
-      [localRotation[idx], localRotation[target]] = [localRotation[target], localRotation[idx]];
+
+  el.querySelectorAll('.drag-chip').forEach((chip) => {
+    chip.addEventListener('dragstart', () => {
+      dragFromIndex = Number(chip.dataset.index);
+      chip.classList.add('dragging');
+    });
+    chip.addEventListener('dragend', () => {
+      chip.classList.remove('dragging');
+      dragFromIndex = null;
+    });
+    chip.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    chip.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const targetIndex = Number(chip.dataset.index);
+      if (dragFromIndex === null || dragFromIndex === targetIndex) return;
+      const [moved] = localRotation.splice(dragFromIndex, 1);
+      localRotation.splice(targetIndex, 0, moved);
       renderRotation();
     });
   });
+}
+
+function renderNowPlaying(np) {
+  const categoryMap = new Map(state.categories.map((c) => [c.id, c]));
+  const currentEl = document.getElementById('now-playing-current');
+
+  if (np.current) {
+    const c = categoryMap.get(np.current.categoryId);
+    currentEl.innerHTML = `
+      <span class="chip" style="background:${c?.color || '#888'}">${escapeHtml(c?.name || '')}</span>
+      <strong>${escapeHtml(np.current.title)}</strong>
+      ${np.current.artist ? `&mdash; ${escapeHtml(np.current.artist)}` : ''}
+    `;
+  } else {
+    currentEl.textContent = 'Nothing reported yet — open the player page to start playback.';
+  }
+
+  const renderList = (el, items) => {
+    el.innerHTML =
+      items
+        .map((t) => {
+          const c = categoryMap.get(t.categoryId);
+          return `<li><span class="chip" style="background:${c?.color || '#888'}">${escapeHtml(c?.name || '')}</span> ${escapeHtml(t.title)}${t.artist ? ` &mdash; ${escapeHtml(t.artist)}` : ''}</li>`;
+        })
+        .join('') || '<li class="np-empty">&mdash;</li>';
+  };
+
+  renderList(document.getElementById('up-next-list'), np.upNext || []);
+  renderList(document.getElementById('history-list'), np.history || []);
+}
+
+async function pollNowPlaying() {
+  try {
+    renderNowPlaying(await api('/now-playing'));
+  } catch {
+    // best-effort; don't disrupt the rest of the admin UI over a missed poll
+  }
 }
 
 function renderTracks() {
@@ -223,3 +272,5 @@ document.getElementById('save-rotation').addEventListener('click', async () => {
 });
 
 refresh().catch((err) => alert(`Failed to load: ${err.message}`));
+pollNowPlaying();
+setInterval(pollNowPlaying, 4000);
