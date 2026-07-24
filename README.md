@@ -1,4 +1,4 @@
-# JEM Castor
+# JEM Caster
 
 A small self-hosted "radio station" player for streaming to TikTok/etc. via OBS.
 

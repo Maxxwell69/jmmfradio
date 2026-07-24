@@ -27,7 +27,7 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`jmmfradio running at http://localhost:${PORT}`);
+  console.log(`JEM Caster running at http://localhost:${PORT}`);
   console.log(`  Player (add as OBS Browser Source): http://localhost:${PORT}/player.html`);
   console.log(`  Admin (upload + configure):          http://localhost:${PORT}/admin.html`);
 });

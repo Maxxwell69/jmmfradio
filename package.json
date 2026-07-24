@@ -1,5 +1,5 @@
 {
-  "name": "jmmfradio",
+  "name": "jem-caster",
   "version": "1.0.0",
   "description": "Browser-based radio automation player for OBS Browser Source: category rotation scheduling, now-playing overlay, and a media upload/admin UI.",
   "main": "server/index.js",

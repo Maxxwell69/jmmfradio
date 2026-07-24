@@ -13,6 +13,18 @@ header {
   padding: 24px 32px 8px;
 }
 
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-header-logo {
+  width: 56px;
+  height: 56px;
+  flex: none;
+}
+
 h1 {
   margin: 0 0 4px;
 }

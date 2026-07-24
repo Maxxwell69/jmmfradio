@@ -16,6 +16,16 @@ html, body {
   display: none !important;
 }
 
+.brand-logo {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
 .card {
   position: absolute;
   left: 24px;
