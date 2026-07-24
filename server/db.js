@@ -13,11 +13,19 @@ const DEFAULT_CATEGORIES = [
   { id: 'ad', name: 'Ad', color: '#f97316' },
 ];
 
+// Percentages (0-100) of the player viewport, anchored top-left. Works regardless of
+// whether the OBS source is set up as 16:9 or a vertical 9:16 canvas.
+const DEFAULT_LAYOUT = {
+  card: { x: 4, y: 78 },
+  logo: { x: 82, y: 4 },
+};
+
 const DEFAULT_DB = {
   categories: DEFAULT_CATEGORIES,
   rotation: ['music', 'music', 'music', 'id', 'music', 'music', 'music', 'jingle'],
   tracks: [],
   settings: { crossfadeSeconds: 3 },
+  layout: DEFAULT_LAYOUT,
 };
 
 let writeQueue = Promise.resolve();
@@ -35,6 +43,7 @@ async function ensureDb() {
 // doesn't require a manual migration step.
 function withDefaults(db) {
   if (!db.settings) db.settings = { crossfadeSeconds: 3 };
+  if (!db.layout) db.layout = DEFAULT_LAYOUT;
   return db;
 }
 

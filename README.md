@@ -25,16 +25,26 @@ Jingle`, and the player cycles through it, pulling a random track (avoiding
 immediate repeats) from whichever category is next in line each time a track
 ends.
 
+This build (**JEM Caster Solo**) is a single-admin testbed for new features
+ahead of the multi-tenant JEM Caster platform — one account, protected by a
+sign-in page, running on your own machine or a single server.
+
 ## Setup
 
 ```bash
 npm install
+cp .env.example .env   # then edit .env with your own admin email/password
 npm start
 ```
 
+`.env` holds `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `SESSION_SECRET` — the one
+account allowed to sign in. Visiting the site root (`/`) shows a sign-in
+page; once signed in you're redirected to `/admin.html`.
+
 Then:
 
-1. Open `http://localhost:3000/admin.html` and upload some audio files —
+1. Open `http://localhost:3000/` and sign in, which lands you on the admin
+   dashboard. Upload some audio files —
    title, artist, and cover art are read automatically from the file's tags
    (ID3, etc.) when available; the form fields only need filling in to
    override that.
@@ -73,12 +83,19 @@ polling, no page reload needed):
 - **Crossfade** — how many seconds of overlap/fade between tracks (0 =
   instant hard cut). Applies to every transition, automatic or manual.
 
+## Player layout designer
+
+The admin page's **Player layout** panel lets you drag the now-playing card
+and the logo around a 9:16-shaped canvas to position them for a vertical
+(e.g. TikTok-style) stream. Positions are saved as percentages, so the same
+layout holds up whether the actual OBS source is 16:9 or vertical.
+
 ## Notes / limitations
 
 - Audio only (mp3, wav, ogg, flac, m4a/aac) — this is meant for a "radio"
   style audio playlist, not video.
-- No authentication. This is meant to run locally/on your own machine for
-  your own use — don't expose the admin page to the public internet as-is.
-- State (categories, rotation, track metadata, crossfade setting) is stored
-  in `data/db.json`; uploaded files live in `media/`. Neither is committed
-  to git.
+- Single admin account via `.env` — fine for running this yourself, but not
+  meant to be exposed as a public signup product as-is.
+- State (categories, rotation, track metadata, crossfade setting, layout) is
+  stored in `data/db.json`; uploaded files live in `media/`. Neither is
+  committed to git.

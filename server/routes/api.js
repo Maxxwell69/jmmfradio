@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { parseFile } from 'music-metadata';
 import { readDb, updateDb } from '../db.js';
+import { verifyCredentials, requireAuth } from '../auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MEDIA_DIR = path.join(__dirname, '..', '..', 'media');
@@ -103,6 +104,25 @@ async function safeUnlink(filePath) {
   }
 }
 
+// POST /api/login - the one admin account signs in (see server/auth.js)
+router.post('/login', express.json(), (req, res) => {
+  const { email, password } = req.body;
+  if (!verifyCredentials(email, password)) {
+    return res.status(401).json({ error: 'Incorrect email or password.' });
+  }
+  req.session.authenticated = true;
+  req.session.email = email;
+  res.json({ ok: true });
+});
+
+router.post('/logout', (req, res) => {
+  req.session.destroy(() => res.json({ ok: true }));
+});
+
+router.get('/session', (req, res) => {
+  res.json({ authenticated: !!req.session?.authenticated, email: req.session?.email || null });
+});
+
 // GET /api/state - everything the player and admin UI need
 router.get('/state', async (req, res) => {
   const db = await readDb();
@@ -112,6 +132,7 @@ router.get('/state', async (req, res) => {
 // POST /api/tracks - upload a media file (+ optional art) and register it
 router.post(
   '/tracks',
+  requireAuth,
   upload.fields([
     { name: 'file', maxCount: 1 },
     { name: 'art', maxCount: 1 },
@@ -169,7 +190,7 @@ router.post(
 );
 
 // PUT /api/tracks/:id - edit metadata (title/artist/category), not the file itself
-router.put('/tracks/:id', express.json(), async (req, res) => {
+router.put('/tracks/:id', requireAuth, express.json(), async (req, res) => {
   const { title, artist, categoryId } = req.body;
   try {
     const db = await updateDb((db) => {
@@ -192,7 +213,7 @@ router.put('/tracks/:id', express.json(), async (req, res) => {
 });
 
 // DELETE /api/tracks/:id
-router.delete('/tracks/:id', async (req, res) => {
+router.delete('/tracks/:id', requireAuth, async (req, res) => {
   let removed;
   try {
     const db = await updateDb((db) => {
@@ -210,7 +231,7 @@ router.delete('/tracks/:id', async (req, res) => {
 });
 
 // POST /api/categories - add a rotation category (e.g. "Weather", "Ad")
-router.post('/categories', express.json(), async (req, res) => {
+router.post('/categories', requireAuth, express.json(), async (req, res) => {
   const { name, color } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'name is required' });
   try {
@@ -227,7 +248,7 @@ router.post('/categories', express.json(), async (req, res) => {
 });
 
 // DELETE /api/categories/:id - blocked if tracks still use it or it's in the rotation pattern
-router.delete('/categories/:id', async (req, res) => {
+router.delete('/categories/:id', requireAuth, async (req, res) => {
   try {
     const db = await updateDb((db) => {
       const inUse = db.tracks.some((t) => t.categoryId === req.params.id);
@@ -247,7 +268,7 @@ router.delete('/categories/:id', async (req, res) => {
 });
 
 // PUT /api/rotation - save the clock-wheel pattern, e.g. ["music","music","id","music","jingle"]
-router.put('/rotation', express.json(), async (req, res) => {
+router.put('/rotation', requireAuth, express.json(), async (req, res) => {
   const { rotation } = req.body;
   if (!Array.isArray(rotation) || rotation.length === 0) {
     return res.status(400).json({ error: 'rotation must be a non-empty array of category ids' });
@@ -294,7 +315,7 @@ router.get('/now-playing', (req, res) => {
 let pendingCommand = null;
 const COMMAND_TYPES = new Set(['skip', 'play-category', 'play-track']);
 
-router.post('/command', express.json(), (req, res) => {
+router.post('/command', requireAuth, express.json(), (req, res) => {
   const { type, categoryId, trackId } = req.body;
   if (!COMMAND_TYPES.has(type)) {
     return res.status(400).json({ error: 'Invalid command type.' });
@@ -313,6 +334,27 @@ router.get('/command', (req, res) => {
   const command = pendingCommand;
   pendingCommand = null;
   res.json({ command });
+});
+
+// PUT /api/layout - positions (0-100%, anchored top-left) for the now-playing card and
+// logo on the player page, set via the admin drag-and-drop designer.
+router.put('/layout', requireAuth, express.json(), async (req, res) => {
+  const { card, logo } = req.body;
+  const clamp = (n) => Math.min(100, Math.max(0, Number(n)));
+  try {
+    const db = await updateDb((db) => {
+      if (card && Number.isFinite(Number(card.x)) && Number.isFinite(Number(card.y))) {
+        db.layout.card = { x: clamp(card.x), y: clamp(card.y) };
+      }
+      if (logo && Number.isFinite(Number(logo.x)) && Number.isFinite(Number(logo.y))) {
+        db.layout.logo = { x: clamp(logo.x), y: clamp(logo.y) };
+      }
+      return db;
+    });
+    res.json({ layout: db.layout });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
 });
 
 export default router;

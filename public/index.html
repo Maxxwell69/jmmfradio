@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JEM Caster</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <main class="login-card">
+    <img src="logo.png" alt="JEM Caster" class="login-logo" />
+    <h1>JEM Caster</h1>
+    <p class="login-sub">Solo</p>
+
+    <form id="login-form">
+      <label>Email
+        <input type="email" id="email-input" required autocomplete="username" />
+      </label>
+      <label>Password
+        <input type="password" id="password-input" required autocomplete="current-password" />
+      </label>
+      <button type="submit">Sign in</button>
+      <span id="login-error" class="login-error"></span>
+    </form>
+  </main>
+
+  <script src="login.js"></script>
+</body>
+</html>

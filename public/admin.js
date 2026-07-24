@@ -2,6 +2,8 @@ document.getElementById('player-url').textContent = `${location.origin}/player.h
 
 let state = { categories: [], rotation: [], tracks: [] };
 let localRotation = [];
+const DEFAULT_LAYOUT = { card: { x: 4, y: 78 }, logo: { x: 82, y: 4 } };
+let localLayout = { card: { ...DEFAULT_LAYOUT.card }, logo: { ...DEFAULT_LAYOUT.logo } };
 
 async function api(path, options) {
   const res = await fetch(`/api${path}`, options);
@@ -13,6 +15,9 @@ async function api(path, options) {
 async function refresh() {
   state = await api('/state');
   localRotation = [...state.rotation];
+  if (state.layout) {
+    localLayout = { card: { ...state.layout.card }, logo: { ...state.layout.logo } };
+  }
   renderAll();
 }
 
@@ -30,8 +35,48 @@ function renderAll() {
   renderCategoryChips();
   renderCategorySelects();
   renderRotation();
+  renderLayout();
   renderTracks();
 }
+
+function renderLayout() {
+  const cardEl = document.getElementById('layout-card');
+  const logoEl = document.getElementById('layout-logo');
+  cardEl.style.left = `${localLayout.card.x}%`;
+  cardEl.style.top = `${localLayout.card.y}%`;
+  logoEl.style.left = `${localLayout.logo.x}%`;
+  logoEl.style.top = `${localLayout.logo.y}%`;
+}
+
+// Drag-to-reposition: the item's top-left corner follows the pointer directly within
+// the canvas bounds. Simple "jump to cursor" behavior — good enough for a rough layout tool.
+function makeDraggable(el, key) {
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    const canvas = document.getElementById('layout-canvas');
+
+    const onMove = (moveEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = ((moveEvent.clientX - rect.left) / rect.width) * 100;
+      const y = ((moveEvent.clientY - rect.top) / rect.height) * 100;
+      localLayout[key] = {
+        x: Math.round(Math.min(100, Math.max(0, x)) * 10) / 10,
+        y: Math.round(Math.min(100, Math.max(0, y)) * 10) / 10,
+      };
+      renderLayout();
+    };
+    const onUp = () => {
+      el.releasePointerCapture(e.pointerId);
+      el.removeEventListener('pointermove', onMove);
+      el.removeEventListener('pointerup', onUp);
+    };
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+  });
+}
+makeDraggable(document.getElementById('layout-card'), 'card');
+makeDraggable(document.getElementById('layout-logo'), 'logo');
 
 function renderCategoryChips() {
   const el = document.getElementById('category-list');
@@ -306,6 +351,31 @@ document.getElementById('play-track-form').addEventListener('submit', (e) => {
   const trackId = document.getElementById('play-track-select').value;
   if (!trackId) return;
   sendCommand({ type: 'play-track', trackId });
+});
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  await api('/logout', { method: 'POST' }).catch(() => {});
+  location.href = '/';
+});
+
+document.getElementById('layout-reset').addEventListener('click', () => {
+  localLayout = { card: { ...DEFAULT_LAYOUT.card }, logo: { ...DEFAULT_LAYOUT.logo } };
+  renderLayout();
+});
+
+document.getElementById('layout-save').addEventListener('click', async () => {
+  const statusEl = document.getElementById('layout-status');
+  try {
+    await api('/layout', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(localLayout),
+    });
+    statusEl.textContent = 'Saved.';
+    setTimeout(() => (statusEl.textContent = ''), 2000);
+  } catch (err) {
+    statusEl.textContent = err.message;
+  }
 });
 
 refresh().catch((err) => alert(`Failed to load: ${err.message}`));

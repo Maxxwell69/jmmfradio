@@ -56,6 +56,25 @@ async function fetchState() {
   if (!res.ok) throw new Error('Failed to load state');
   state = await res.json();
   indexTracks();
+  applyLayout(state.layout);
+}
+
+// Positions are percentages anchored top-left, set via the admin's drag-and-drop
+// designer, so this works whichever aspect ratio the OBS source is set up as.
+function applyLayout(layout) {
+  if (!layout) return;
+  if (layout.card) {
+    overlay.style.left = `${layout.card.x}%`;
+    overlay.style.top = `${layout.card.y}%`;
+    overlay.style.right = 'auto';
+    overlay.style.bottom = 'auto';
+  }
+  const logoEl = document.querySelector('.brand-logo');
+  if (logoEl && layout.logo) {
+    logoEl.style.left = `${layout.logo.x}%`;
+    logoEl.style.top = `${layout.logo.y}%`;
+    logoEl.style.right = 'auto';
+  }
 }
 
 // Pure step function: given a rotation position and per-category "last played" map,

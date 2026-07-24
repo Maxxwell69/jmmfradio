@@ -10,12 +10,13 @@
   <header class="brand-header">
     <img src="logo.png" alt="JEM Caster" class="brand-header-logo" />
     <div>
-      <h1>JEM Caster</h1>
+      <h1>JEM Caster <span class="solo-badge">Solo</span></h1>
       <p class="sub">
         Upload media, manage rotation categories, and build the clock-wheel schedule.
         Add <code id="player-url"></code> as an OBS Browser Source.
       </p>
     </div>
+    <button id="logout-btn" type="button" class="logout-btn">Log out</button>
   </header>
 
   <main>
@@ -96,7 +97,21 @@
     </section>
 
     <section class="panel">
-      <h2>4. Tracks</h2>
+      <h2>4. Player layout</h2>
+      <p class="hint">Drag the card and logo to position them on the player page. Positions are saved as percentages, so this works whether OBS is set up as 16:9 or a vertical 9:16 canvas.</p>
+      <div id="layout-canvas" class="layout-canvas">
+        <div id="layout-card" class="layout-item layout-card">&#9835; Now playing card</div>
+        <div id="layout-logo" class="layout-item layout-logo">Logo</div>
+      </div>
+      <div class="layout-actions">
+        <button id="layout-reset" type="button">Reset to default</button>
+        <button id="layout-save" type="button">Save layout</button>
+        <span id="layout-status" class="status"></span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>5. Tracks</h2>
       <table id="track-table">
         <thead>
           <tr>
