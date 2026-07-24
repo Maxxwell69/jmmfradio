@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>jmmfradio admin</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <header>
+    <h1>jmmfradio</h1>
+    <p class="sub">
+      Upload media, manage rotation categories, and build the clock-wheel schedule.
+      Add <code id="player-url"></code> as an OBS Browser Source.
+    </p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>1. Upload media</h2>
+      <form id="upload-form">
+        <label>File
+          <input type="file" name="file" id="file-input" required />
+        </label>
+        <label>Title (optional)
+          <input type="text" name="title" id="title-input" placeholder="Defaults to filename" />
+        </label>
+        <label>Artist (optional)
+          <input type="text" name="artist" id="artist-input" />
+        </label>
+        <label>Category
+          <select name="categoryId" id="category-select" required></select>
+        </label>
+        <label>Art (optional)
+          <input type="file" name="art" id="art-input" accept="image/*" />
+        </label>
+        <button type="submit">Upload</button>
+        <span id="upload-status" class="status"></span>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>2. Categories</h2>
+      <div id="category-list" class="chip-row"></div>
+      <form id="category-form" class="inline-form">
+        <input type="text" id="new-category-name" placeholder="New category name (e.g. Weather)" required />
+        <input type="color" id="new-category-color" value="#4f7cff" />
+        <button type="submit">Add category</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>3. Rotation (clock wheel)</h2>
+      <p class="hint">This is the order categories cycle through, e.g. Music, Music, Music, Station ID, repeat.</p>
+      <div id="rotation-list" class="chip-row rotation"></div>
+      <form id="rotation-add-form" class="inline-form">
+        <select id="rotation-category-select"></select>
+        <button type="submit">Add to end</button>
+      </form>
+      <button id="save-rotation" type="button">Save rotation</button>
+      <span id="rotation-status" class="status"></span>
+    </section>
+
+    <section class="panel">
+      <h2>4. Tracks</h2>
+      <table id="track-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Artist</th>
+            <th>Category</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="track-tbody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>

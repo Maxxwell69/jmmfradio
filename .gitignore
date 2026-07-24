@@ -1,0 +1,7 @@
+node_modules/
+data/db.json
+media/*
+!media/art
+media/art/*
+!media/.gitkeep
+!media/art/.gitkeep

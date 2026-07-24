@@ -1,0 +1,64 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DATA_DIR = path.join(__dirname, '..', 'data');
+const DB_FILE = path.join(DATA_DIR, 'db.json');
+
+const DEFAULT_CATEGORIES = [
+  { id: 'music', name: 'Music', color: '#4f7cff' },
+  { id: 'id', name: 'Station ID', color: '#22c55e' },
+  { id: 'jingle', name: 'Jingle', color: '#eab308' },
+  { id: 'ad', name: 'Ad', color: '#f97316' },
+];
+
+const DEFAULT_DB = {
+  categories: DEFAULT_CATEGORIES,
+  rotation: ['music', 'music', 'music', 'id', 'music', 'music', 'music', 'jingle'],
+  tracks: [],
+};
+
+let writeQueue = Promise.resolve();
+
+async function ensureDb() {
+  await fs.mkdir(DATA_DIR, { recursive: true });
+  try {
+    await fs.access(DB_FILE);
+  } catch {
+    await fs.writeFile(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2));
+  }
+}
+
+export async function readDb() {
+  await ensureDb();
+  const raw = await fs.readFile(DB_FILE, 'utf-8');
+  return JSON.parse(raw);
+}
+
+// Serializes writes so concurrent requests (e.g. two uploads at once) can't clobber each other.
+export function writeDb(db) {
+  writeQueue = writeQueue.then(async () => {
+    const tmpFile = `${DB_FILE}.tmp`;
+    await fs.writeFile(tmpFile, JSON.stringify(db, null, 2));
+    await fs.rename(tmpFile, DB_FILE);
+  });
+  return writeQueue;
+}
+
+// Reads, lets the mutator mutate in place (or return a new object), then persists.
+// Runs on the write queue so read-modify-write sequences stay atomic under concurrency.
+export function updateDb(mutator) {
+  const result = writeQueue.then(async () => {
+    await ensureDb();
+    const raw = await fs.readFile(DB_FILE, 'utf-8');
+    const db = JSON.parse(raw);
+    const next = (await mutator(db)) || db;
+    const tmpFile = `${DB_FILE}.tmp`;
+    await fs.writeFile(tmpFile, JSON.stringify(next, null, 2));
+    await fs.rename(tmpFile, DB_FILE);
+    return next;
+  });
+  writeQueue = result.catch(() => {});
+  return result;
+}

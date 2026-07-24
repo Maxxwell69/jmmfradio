@@ -1,0 +1,21 @@
+{
+  "name": "jmmfradio",
+  "version": "1.0.0",
+  "description": "Browser-based radio automation player for OBS Browser Source: category rotation scheduling, now-playing overlay, and a media upload/admin UI.",
+  "main": "server/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:41729/git/Maxxwell69/jmmfradio"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.2.1",
+    "multer": "^2.2.0"
+  }
+}

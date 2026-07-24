@@ -1,0 +1,166 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0f111a;
+  color: #f4f5f7;
+}
+
+header {
+  padding: 24px 32px 8px;
+}
+
+h1 {
+  margin: 0 0 4px;
+}
+
+.sub {
+  opacity: 0.75;
+  font-size: 14px;
+}
+
+.sub code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+main {
+  padding: 8px 32px 48px;
+  max-width: 900px;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 16px;
+}
+
+.hint {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-top: -4px;
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  opacity: 0.8;
+  gap: 4px;
+}
+
+input,
+select,
+button {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #171a26;
+  color: #f4f5f7;
+}
+
+input[type='color'] {
+  padding: 2px;
+  width: 44px;
+}
+
+button {
+  cursor: pointer;
+  background: #4f7cff;
+  border: none;
+  font-weight: 600;
+}
+
+button:hover {
+  background: #3d68eb;
+}
+
+.status {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f111a;
+}
+
+.chip button {
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  border: none;
+  border-radius: 999px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 1;
+  font-size: 12px;
+}
+
+.rotation .chip {
+  cursor: default;
+}
+
+.inline-form {
+  margin-top: 4px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+}
+
+td select {
+  padding: 4px 6px;
+}
+
+td button {
+  background: #b33636;
+  padding: 4px 8px;
+}
+
+td button:hover {
+  background: #932a2a;
+}

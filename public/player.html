@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>jmmfradio player</title>
+  <link rel="stylesheet" href="player.css" />
+</head>
+<body>
+  <audio id="audio" preload="auto"></audio>
+
+  <div id="overlay" class="card hidden">
+    <div class="art-wrap">
+      <img id="art" alt="" />
+      <div id="art-fallback" class="art-fallback">&#9835;</div>
+    </div>
+    <div class="meta">
+      <div id="category-badge" class="badge"></div>
+      <div id="title" class="title">&nbsp;</div>
+      <div id="artist" class="artist">&nbsp;</div>
+      <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+    </div>
+  </div>
+
+  <div id="empty" class="empty hidden">
+    No tracks yet. Add media in the <strong>admin</strong> page.
+  </div>
+
+  <button id="start-btn" class="start-btn hidden">&#9654; Click to start playback</button>
+
+  <script src="player.js"></script>
+</body>
+</html>
