@@ -19,6 +19,7 @@
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "multer": "^2.2.0",
-    "music-metadata": "^11.14.0"
+    "music-metadata": "^11.14.0",
+    "pg": "^8.22.0"
   }
 }
