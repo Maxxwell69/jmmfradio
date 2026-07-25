@@ -10,6 +10,8 @@ import { requireAuth } from './auth.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const PORT = process.env.PORT || 3000;
+// See server/db.js for why this reads STORAGE_DIR — same single-volume constraint on Railway.
+const MEDIA_DIR = process.env.STORAGE_DIR ? path.join(process.env.STORAGE_DIR, 'media') : path.join(ROOT, 'media');
 
 if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
   console.warn('ADMIN_EMAIL / ADMIN_PASSWORD are not set — sign-in will reject everyone until .env is configured.');
@@ -35,7 +37,7 @@ app.use(
 );
 
 app.use('/api', apiRouter);
-app.use('/media', express.static(path.join(ROOT, 'media')));
+app.use('/media', express.static(MEDIA_DIR));
 
 // The front page doubles as the sign-in screen for now; already-signed-in visitors
 // skip straight to the admin dashboard.

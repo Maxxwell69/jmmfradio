@@ -9,7 +9,10 @@ import { readDb, updateDb } from '../db.js';
 import { verifyCredentials, requireAuth } from '../auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const MEDIA_DIR = path.join(__dirname, '..', '..', 'media');
+// See server/db.js for why this reads STORAGE_DIR — same single-volume constraint on Railway.
+const MEDIA_DIR = process.env.STORAGE_DIR
+  ? path.join(process.env.STORAGE_DIR, 'media')
+  : path.join(__dirname, '..', '..', 'media');
 const ART_DIR = path.join(MEDIA_DIR, 'art');
 
 const AUDIO_TYPES = new Set([

@@ -3,7 +3,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, '..', 'data');
+// STORAGE_DIR points at a single mounted volume in production (Railway only allows one
+// per service); data/ and media/ live as subfolders inside it. Falls back to the repo's
+// own data/ folder for local dev, where no volume is involved.
+const DATA_DIR = process.env.STORAGE_DIR ? path.join(process.env.STORAGE_DIR, 'data') : path.join(__dirname, '..', 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 const DEFAULT_CATEGORIES = [
