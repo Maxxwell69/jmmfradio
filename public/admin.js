@@ -192,6 +192,12 @@ function renderNowPlaying(np) {
 
   renderList(document.getElementById('up-next-list'), np.upNext || []);
   renderList(document.getElementById('history-list'), np.history || []);
+
+  if (typeof np.volume === 'number' && !volumeSliderActive) {
+    lastKnownVolume = np.volume;
+    document.getElementById('admin-volume-slider').value = String(np.volume);
+    updateAdminVolumeDisplay(np.volume);
+  }
 }
 
 async function pollNowPlaying() {
@@ -201,6 +207,52 @@ async function pollNowPlaying() {
     // best-effort; don't disrupt the rest of the admin UI over a missed poll
   }
 }
+
+// Remote volume control: sends 'set-volume' commands the player picks up on its next poll.
+// Needed because an embedded browser source (e.g. TikTok Live Studio) can't be clicked into
+// to reach the on-page slider.
+let volumeSliderActive = false;
+let lastKnownVolume = 80;
+let volumeSendTimer = null;
+
+function updateAdminVolumeDisplay(v) {
+  document.getElementById('admin-volume-value').textContent = `${v}%`;
+  document.getElementById('admin-mute-btn').textContent = v === 0 ? '\u{1F507}' : '\u{1F50A}';
+}
+
+function sendVolumeCommand(v) {
+  clearTimeout(volumeSendTimer);
+  volumeSendTimer = setTimeout(() => {
+    sendCommand({ type: 'set-volume', volume: v });
+  }, 150);
+}
+
+const adminVolumeSlider = document.getElementById('admin-volume-slider');
+
+adminVolumeSlider.addEventListener('pointerdown', () => {
+  volumeSliderActive = true;
+});
+['pointerup', 'pointercancel'].forEach((evt) =>
+  adminVolumeSlider.addEventListener(evt, () => {
+    volumeSliderActive = false;
+  })
+);
+
+adminVolumeSlider.addEventListener('input', () => {
+  const v = Number(adminVolumeSlider.value);
+  lastKnownVolume = v;
+  updateAdminVolumeDisplay(v);
+  sendVolumeCommand(v);
+});
+
+document.getElementById('admin-mute-btn').addEventListener('click', () => {
+  const current = Number(adminVolumeSlider.value);
+  const next = current > 0 ? 0 : lastKnownVolume || 80;
+  if (current > 0) lastKnownVolume = current;
+  adminVolumeSlider.value = String(next);
+  updateAdminVolumeDisplay(next);
+  sendVolumeCommand(next);
+});
 
 function renderTracks() {
   const categoryMap = new Map(state.categories.map((c) => [c.id, c]));

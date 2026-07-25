@@ -166,7 +166,18 @@ function reportNowPlaying(track) {
     body: JSON.stringify({
       current: { id: track.id, title: track.title, artist: track.artist, categoryId: track.categoryId, art: track.art },
       upNext,
+      volume: Math.round(audio.volume * 100),
     }),
+  }).catch(() => {});
+}
+
+// Lets the admin's remote volume control see what's actually playing — needed because a
+// browser-source embed (e.g. TikTok Live Studio) has no way to reach the on-page slider.
+function reportVolume() {
+  fetch('/api/now-playing', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ volume: Math.round(audio.volume * 100) }),
   }).catch(() => {});
 }
 
@@ -260,21 +271,28 @@ audio.volume = loadVolume();
 volumeSlider.value = String(Math.round(audio.volume * 100));
 updateMuteIcon();
 
-volumeSlider.addEventListener('input', () => {
-  audio.volume = Number(volumeSlider.value) / 100;
+// Shared by the on-page slider/mute button and the admin's remote volume command, so all
+// three paths stay consistent (persisted, mute-restore tracked, admin kept in sync).
+function applyVolume(v) {
+  audio.volume = Math.min(1, Math.max(0, v));
   if (audio.volume > 0) lastNonZeroVolume = audio.volume;
-  localStorage.setItem(VOLUME_KEY, String(audio.volume));
-  updateMuteIcon();
-});
-
-muteBtn.addEventListener('click', () => {
-  audio.volume = audio.volume > 0 ? 0 : lastNonZeroVolume || 0.8;
   volumeSlider.value = String(Math.round(audio.volume * 100));
   localStorage.setItem(VOLUME_KEY, String(audio.volume));
   updateMuteIcon();
+}
+
+volumeSlider.addEventListener('input', () => {
+  applyVolume(Number(volumeSlider.value) / 100);
+  reportVolume();
 });
 
-// Lets the admin page skip, or force a specific category/track to play next.
+muteBtn.addEventListener('click', () => {
+  applyVolume(audio.volume > 0 ? 0 : lastNonZeroVolume || 0.8);
+  reportVolume();
+});
+
+// Lets the admin page skip, force a specific category/track to play next, or (since a
+// browser-source embed like TikTok Live Studio can't reach the on-page slider) set volume.
 async function pollCommand() {
   try {
     const res = await fetch('/api/command', { cache: 'no-store' });
@@ -288,6 +306,9 @@ async function pollCommand() {
     } else if (command.type === 'play-track') {
       forcedNext = { type: 'track', trackId: command.trackId };
       playNext();
+    } else if (command.type === 'set-volume') {
+      applyVolume(Number(command.volume) / 100);
+      reportVolume();
     }
   } catch {
     // best-effort; try again on the next poll

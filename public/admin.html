@@ -48,6 +48,13 @@
         </form>
         <span id="command-status" class="status"></span>
       </div>
+
+      <div class="volume-control">
+        <button id="admin-mute-btn" type="button" class="icon-btn" title="Mute / unmute">&#128266;</button>
+        <input type="range" id="admin-volume-slider" min="0" max="100" value="80" title="Player volume" />
+        <span id="admin-volume-value" class="volume-value">80%</span>
+        <span class="hint">Remote volume &mdash; use this when the player is embedded somewhere you can't click into (e.g. TikTok Live Studio's browser source).</span>
+      </div>
     </section>
 
     <section class="panel">

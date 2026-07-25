@@ -293,19 +293,28 @@ router.put('/rotation', requireAuth, express.json(), async (req, res) => {
 
 // In-memory only: the player page self-reports what it's playing so the admin UI can show
 // an on-air/up-next/history view without the server owning rotation state itself.
-const nowPlaying = { current: null, currentSince: null, upNext: [], history: [] };
+const nowPlaying = { current: null, currentSince: null, upNext: [], history: [], volume: null };
 
+// Fields are all optional/independent so a volume-only report (sent whenever the player's
+// volume changes, not just on track change) doesn't clobber current/upNext with nulls.
 router.post('/now-playing', express.json(), (req, res) => {
-  const { current, upNext } = req.body;
-  if (nowPlaying.current && (!current || nowPlaying.current.id !== current.id)) {
-    nowPlaying.history.unshift({ ...nowPlaying.current, playedAt: nowPlaying.currentSince });
-    nowPlaying.history = nowPlaying.history.slice(0, 10);
+  const { current, upNext, volume } = req.body;
+  if (current !== undefined) {
+    if (nowPlaying.current && (!current || nowPlaying.current.id !== current.id)) {
+      nowPlaying.history.unshift({ ...nowPlaying.current, playedAt: nowPlaying.currentSince });
+      nowPlaying.history = nowPlaying.history.slice(0, 10);
+    }
+    if (current && nowPlaying.current?.id !== current.id) {
+      nowPlaying.currentSince = new Date().toISOString();
+    }
+    nowPlaying.current = current || null;
   }
-  if (current && nowPlaying.current?.id !== current.id) {
-    nowPlaying.currentSince = new Date().toISOString();
+  if (upNext !== undefined) {
+    nowPlaying.upNext = Array.isArray(upNext) ? upNext.slice(0, 10) : [];
   }
-  nowPlaying.current = current || null;
-  nowPlaying.upNext = Array.isArray(upNext) ? upNext.slice(0, 10) : [];
+  if (typeof volume === 'number' && Number.isFinite(volume)) {
+    nowPlaying.volume = Math.min(100, Math.max(0, Math.round(volume)));
+  }
   res.json({ ok: true });
 });
 
@@ -316,10 +325,10 @@ router.get('/now-playing', (req, res) => {
 // In-memory, single-slot queue: admin posts a command, the player picks it up on its
 // next poll and the GET clears it. Good enough for one player instance at a time.
 let pendingCommand = null;
-const COMMAND_TYPES = new Set(['skip', 'play-category', 'play-track']);
+const COMMAND_TYPES = new Set(['skip', 'play-category', 'play-track', 'set-volume']);
 
 router.post('/command', requireAuth, express.json(), (req, res) => {
-  const { type, categoryId, trackId } = req.body;
+  const { type, categoryId, trackId, volume } = req.body;
   if (!COMMAND_TYPES.has(type)) {
     return res.status(400).json({ error: 'Invalid command type.' });
   }
@@ -329,7 +338,10 @@ router.post('/command', requireAuth, express.json(), (req, res) => {
   if (type === 'play-track' && !trackId) {
     return res.status(400).json({ error: 'trackId is required.' });
   }
-  pendingCommand = { id: crypto.randomUUID(), type, categoryId, trackId };
+  if (type === 'set-volume' && !(typeof volume === 'number' && Number.isFinite(volume))) {
+    return res.status(400).json({ error: 'volume (a number) is required.' });
+  }
+  pendingCommand = { id: crypto.randomUUID(), type, categoryId, trackId, volume };
   res.json({ ok: true });
 });
 
