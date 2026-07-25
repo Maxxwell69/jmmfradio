@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
+import pg from 'pg';
 import multer from 'multer';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,8 +25,20 @@ const app = express();
 // proxy's HTTPS termination instead of the plain-HTTP hop it sees internally.
 app.set('trust proxy', 1);
 
+// Postgres-backed sessions when DATABASE_URL is set (survives redeploys, works past a
+// single instance); falls back to express-session's in-memory store for local dev.
+let sessionStore;
+if (process.env.DATABASE_URL) {
+  const PgSession = connectPgSimple(session);
+  sessionStore = new PgSession({
+    pool: new pg.Pool({ connectionString: process.env.DATABASE_URL }),
+    createTableIfMissing: true,
+  });
+}
+
 app.use(
   session({
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || 'jem-caster-dev-secret-change-me',
     resave: false,
     saveUninitialized: false,
