@@ -2,6 +2,10 @@
   box-sizing: border-box;
 }
 
+.hidden {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -186,6 +190,54 @@ button:hover {
 
 .full-width {
   flex-basis: 100%;
+}
+
+.upload-file-list {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upload-file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.upload-file-name {
+  flex: 1 1 160px;
+  min-width: 0;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-file-row input,
+.upload-file-row select {
+  flex: 1 1 130px;
+  min-width: 0;
+}
+
+.upload-file-remove {
+  flex: none;
+  background: #b33636;
+  padding: 6px 10px;
+}
+
+.upload-file-remove:hover {
+  background: #9c2c2c;
+}
+
+.mass-category-row {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .now-playing-current {

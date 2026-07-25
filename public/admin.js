@@ -106,7 +106,7 @@ function renderCategoryChips() {
 }
 
 function renderCategorySelects() {
-  document.getElementById('category-select').innerHTML = categoryOptionsHtml();
+  document.getElementById('mass-category-select').innerHTML = categoryOptionsHtml();
   document.getElementById('rotation-category-select').innerHTML = categoryOptionsHtml();
   document.getElementById('play-category-select').innerHTML = categoryOptionsHtml();
 
@@ -258,26 +258,98 @@ function renderTracks() {
   });
 }
 
+// Selected-but-not-yet-uploaded files, each with its own overridable title/artist/category
+// so you can fix up several files at once before sending them ("mass category" etc.).
+let pendingFiles = [];
+
+function renderUploadFileList() {
+  const listEl = document.getElementById('upload-file-list');
+  const massRow = document.getElementById('mass-category-row');
+  massRow.classList.toggle('hidden', pendingFiles.length < 2);
+
+  listEl.innerHTML = pendingFiles
+    .map(
+      (p, i) => `
+      <div class="upload-file-row" data-index="${i}">
+        <span class="upload-file-name" title="${escapeHtml(p.file.name)}">${escapeHtml(p.file.name)}</span>
+        <input type="text" class="pf-title" placeholder="Title (auto)" value="${escapeHtml(p.title)}" />
+        <input type="text" class="pf-artist" placeholder="Artist (auto)" value="${escapeHtml(p.artist)}" />
+        <select class="pf-category">${categoryOptionsHtml(p.categoryId)}</select>
+        <button type="button" class="upload-file-remove" title="Remove">&times;</button>
+      </div>`
+    )
+    .join('');
+
+  listEl.querySelectorAll('.upload-file-row').forEach((row) => {
+    const i = Number(row.dataset.index);
+    row.querySelector('.pf-title').addEventListener('input', (e) => (pendingFiles[i].title = e.target.value));
+    row.querySelector('.pf-artist').addEventListener('input', (e) => (pendingFiles[i].artist = e.target.value));
+    row.querySelector('.pf-category').addEventListener('change', (e) => (pendingFiles[i].categoryId = e.target.value));
+    row.querySelector('.upload-file-remove').addEventListener('click', () => {
+      pendingFiles.splice(i, 1);
+      renderUploadFileList();
+    });
+  });
+}
+
+document.getElementById('file-input').addEventListener('change', (e) => {
+  const defaultCategoryId = document.getElementById('mass-category-select').value || state.categories[0]?.id;
+  pendingFiles = Array.from(e.target.files).map((file) => ({
+    file,
+    title: '',
+    artist: '',
+    categoryId: defaultCategoryId,
+  }));
+  renderUploadFileList();
+});
+
+document.getElementById('mass-category-apply').addEventListener('click', () => {
+  const categoryId = document.getElementById('mass-category-select').value;
+  pendingFiles.forEach((p) => (p.categoryId = categoryId));
+  renderUploadFileList();
+});
+
 document.getElementById('upload-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const form = e.target;
   const statusEl = document.getElementById('upload-status');
-  const formData = new FormData(form);
-  if (!formData.get('file') || formData.get('file').size === 0) {
-    statusEl.textContent = 'Choose a file first.';
+  const submitBtn = document.getElementById('upload-submit');
+  if (!pendingFiles.length) {
+    statusEl.textContent = 'Choose at least one file first.';
     return;
   }
-  statusEl.textContent = 'Uploading...';
-  try {
-    const res = await fetch('/api/tracks', { method: 'POST', body: formData });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Upload failed');
-    statusEl.textContent = `Uploaded "${data.title}".`;
-    form.reset();
-    await refresh();
-  } catch (err) {
-    statusEl.textContent = err.message;
+
+  submitBtn.disabled = true;
+  const total = pendingFiles.length;
+  let uploaded = 0;
+  const failures = [];
+
+  for (const p of pendingFiles) {
+    statusEl.textContent = `Uploading ${uploaded + 1} of ${total}: ${p.file.name}`;
+    const formData = new FormData();
+    formData.set('file', p.file);
+    formData.set('categoryId', p.categoryId);
+    if (p.title.trim()) formData.set('title', p.title.trim());
+    if (p.artist.trim()) formData.set('artist', p.artist.trim());
+    try {
+      const res = await fetch('/api/tracks', { method: 'POST', body: formData });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      uploaded += 1;
+    } catch (err) {
+      failures.push(`${p.file.name}: ${err.message}`);
+    }
   }
+
+  statusEl.textContent =
+    failures.length === 0
+      ? `Uploaded ${uploaded} of ${total}.`
+      : `Uploaded ${uploaded} of ${total}. Failed: ${failures.join('; ')}`;
+
+  submitBtn.disabled = false;
+  pendingFiles = [];
+  document.getElementById('upload-form').reset();
+  renderUploadFileList();
+  await refresh();
 });
 
 document.getElementById('category-form').addEventListener('submit', async (e) => {

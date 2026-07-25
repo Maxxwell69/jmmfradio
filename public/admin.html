@@ -53,23 +53,19 @@
     <section class="panel">
       <h2>1. Upload media</h2>
       <form id="upload-form">
-        <label>File
-          <input type="file" name="file" id="file-input" required />
+        <label class="full-width">Files
+          <input type="file" name="file" id="file-input" accept="audio/*" multiple required />
         </label>
-        <label>Title (optional)
-          <input type="text" name="title" id="title-input" placeholder="Auto-detected from file tags" />
-        </label>
-        <label>Artist (optional)
-          <input type="text" name="artist" id="artist-input" placeholder="Auto-detected from file tags" />
-        </label>
-        <label>Category
-          <select name="categoryId" id="category-select" required></select>
-        </label>
-        <label>Art (optional)
-          <input type="file" name="art" id="art-input" accept="image/*" />
-        </label>
-        <span class="hint full-width">Title, artist, and cover art are read automatically from the file's tags (ID3, etc.) when available &mdash; the fields above only need to be filled in to override that.</span>
-        <button type="submit">Upload</button>
+        <span class="hint full-width">Select one or more audio files. Title, artist, and cover art are read automatically from each file's tags (ID3, etc.) when available &mdash; the fields below only need filling in to override that.</span>
+
+        <div id="upload-file-list" class="upload-file-list"></div>
+
+        <div id="mass-category-row" class="mass-category-row hidden">
+          <select id="mass-category-select"></select>
+          <button type="button" id="mass-category-apply">Set category for all</button>
+        </div>
+
+        <button type="submit" id="upload-submit">Upload</button>
         <span id="upload-status" class="status"></span>
       </form>
     </section>
